@@ -32,30 +32,8 @@
       padding: 16px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
-    .category-buttons {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      margin-bottom: 14px;
-    }
-    .cat-btn {
-      padding: 7px 12px;
-      border: 2px solid #e5e7eb;
-      border-radius: 20px;
-      background: white;
-      font-size: 13px;
-      cursor: pointer;
-      transition: all 0.2s;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .cat-btn.active {
-      border-color: #2563eb;
-      background: #eff6ff;
-      color: #1d4ed8;
-      font-weight: 700;
-    }
 
-    .voice-section { text-align: center; margin: 16px 0; }
+    .voice-section { text-align: center; margin: 8px 0 16px; }
     .mic-btn {
       width: 80px;
       height: 80px;
@@ -116,63 +94,22 @@
     .send-btn:active { transform: scale(0.98); }
     .send-btn:disabled { background: #9ca3af; cursor: not-allowed; transform: none; }
 
-    .filter-bar {
-      display: flex;
-      gap: 6px;
-      padding: 10px 12px;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-    .filter-btn {
-      padding: 6px 12px;
-      border: 1.5px solid #d1d5db;
-      border-radius: 16px;
-      background: white;
-      font-size: 12px;
-      cursor: pointer;
-      white-space: nowrap;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .filter-btn.active {
-      background: #1e40af;
-      color: white;
-      border-color: #1e40af;
-    }
-
-    .entries { padding: 0 12px 100px; }
+    .entries { padding: 8px 12px 100px; }
     .entry {
       background: white;
       border-radius: 12px;
       padding: 14px 16px;
       margin-bottom: 8px;
       box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-      border-left: 4px solid #e5e7eb;
+      border-left: 4px solid #2563eb;
     }
-    .entry.cat-patient { border-left-color: #f59e0b; }
-    .entry.cat-schedule { border-left-color: #3b82f6; }
-    .entry.cat-notice { border-left-color: #ec4899; }
-    .entry.cat-task { border-left-color: #10b981; }
-    .entry.cat-other { border-left-color: #6b7280; }
-
     .entry-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 8px;
     }
-    .entry-category {
-      font-size: 11px;
-      font-weight: 700;
-      padding: 3px 10px;
-      border-radius: 10px;
-      letter-spacing: 0.3px;
-    }
-    .badge-patient { background: #fef3c7; color: #92400e; }
-    .badge-schedule { background: #dbeafe; color: #1e40af; }
-    .badge-notice { background: #fce7f3; color: #9d174d; }
-    .badge-task { background: #d1fae5; color: #065f46; }
-    .badge-other { background: #f3f4f6; color: #374151; }
-    .entry-date { font-size: 11px; color: #9ca3af; }
+    .entry-date { font-size: 12px; color: #9ca3af; }
     .entry-text { font-size: 15px; line-height: 1.7; word-break: break-word; }
     .entry-delete {
       background: none; border: none; color: #d1d5db;
@@ -220,14 +157,6 @@
   <div id="status" class="status-bar"></div>
 
   <div class="input-area">
-    <div class="category-buttons">
-      <button class="cat-btn active" data-cat="患者情報">&#x1FA7A; 患者情報</button>
-      <button class="cat-btn" data-cat="予定">&#x1F4C5; 予定</button>
-      <button class="cat-btn" data-cat="連絡事項">&#x1F4E2; 連絡事項</button>
-      <button class="cat-btn" data-cat="タスク">&#x2705; タスク</button>
-      <button class="cat-btn" data-cat="その他">&#x1F4DD; その他</button>
-    </div>
-
     <div class="voice-section">
       <button id="micBtn" class="mic-btn" onclick="toggleVoice()">&#x1F3A4;</button>
       <div class="mic-label" id="micLabel">タップして音声入力</div>
@@ -237,15 +166,6 @@
     <button id="sendBtn" class="send-btn" onclick="sendEntry()">&#x1F4E8; 送信する</button>
   </div>
 
-  <div class="filter-bar">
-    <button class="filter-btn active" onclick="setFilter('すべて', this)">すべて</button>
-    <button class="filter-btn" onclick="setFilter('患者情報', this)">&#x1FA7A; 患者</button>
-    <button class="filter-btn" onclick="setFilter('予定', this)">&#x1F4C5; 予定</button>
-    <button class="filter-btn" onclick="setFilter('連絡事項', this)">&#x1F4E2; 連絡</button>
-    <button class="filter-btn" onclick="setFilter('タスク', this)">&#x2705; タスク</button>
-    <button class="filter-btn" onclick="setFilter('その他', this)">&#x1F4DD; 他</button>
-  </div>
-
   <div id="entries" class="entries">
     <div class="loading">読み込み中...</div>
   </div>
@@ -253,23 +173,11 @@
   <button class="refresh-btn" onclick="loadEntries()" title="更新">&#x1F504;</button>
 
   <script>
-    // ===== Google Apps Script API URL =====
     var API_URL = 'https://script.google.com/macros/s/AKfycbzPFtkcU8mBRgeQ5LnFMyLOqlMEZflasleZOf_LKCidEluQH7Oq4P_nOZIotgll1Et7-Q/exec';
 
-    var selectedCategory = '患者情報';
-    var currentFilter = 'すべて';
     var allEntries = [];
     var recognition = null;
     var isRecording = false;
-
-    // === カテゴリ選択 ===
-    document.querySelectorAll('.cat-btn').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        document.querySelectorAll('.cat-btn').forEach(function(b) { b.classList.remove('active'); });
-        this.classList.add('active');
-        selectedCategory = this.dataset.cat;
-      });
-    });
 
     // === 音声認識 ===
     function initSpeech() {
@@ -311,14 +219,10 @@
       };
 
       recognition.onerror = function(event) {
-        console.log('Speech error:', event.error);
         if (event.error === 'not-allowed') {
           showStatus('マイクを許可してください（アドレスバー左のアイコンから設定）', 'error');
         } else if (event.error === 'no-speech') {
-          // 無音は無視して再開
           return;
-        } else {
-          showStatus('音声認識エラー: ' + event.error, 'error');
         }
         if (event.error !== 'no-speech') {
           stopVoice();
@@ -336,9 +240,8 @@
         return;
       }
       isRecording = true;
-      var btn = document.getElementById('micBtn');
+      document.getElementById('micBtn').classList.add('recording');
       var label = document.getElementById('micLabel');
-      btn.classList.add('recording');
       label.textContent = '録音中... タップで停止';
       label.classList.add('recording');
       try { recognition.start(); } catch(e) {}
@@ -346,9 +249,8 @@
 
     function stopVoice() {
       isRecording = false;
-      var btn = document.getElementById('micBtn');
+      document.getElementById('micBtn').classList.remove('recording');
       var label = document.getElementById('micLabel');
-      btn.classList.remove('recording');
       label.textContent = 'タップして音声入力';
       label.classList.remove('recording');
       try { recognition.stop(); } catch(e) {}
@@ -371,14 +273,13 @@
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category: selectedCategory, text: text })
+        body: JSON.stringify({ category: '共有', text: text })
       })
       .then(function() {
         document.getElementById('textInput').value = '';
         btn.disabled = false;
         btn.textContent = '\u{1F4E8} 送信する';
         showStatus('送信しました！', 'success');
-        // no-corsではレスポンス読めないので再取得
         setTimeout(loadEntries, 1000);
       })
       .catch(function(err) {
@@ -390,72 +291,33 @@
 
     // === データ取得 ===
     function loadEntries() {
-      // GAS APIはCORS非対応なのでJSONPで取得
-      var script = document.createElement('script');
-      var callbackName = 'gasCallback_' + Date.now();
-
-      window[callbackName] = function(data) {
-        allEntries = data || [];
-        renderEntries();
-        delete window[callbackName];
-        if (script.parentNode) script.parentNode.removeChild(script);
-      };
-
-      // GAS doesn't support JSONP natively, so use redirect trick
-      // Instead, use an iframe approach or just fetch with no-cors
-      // Actually, let's use the simpler approach: fetch via redirect
       fetch(API_URL + '?action=getEntries', { method: 'GET', redirect: 'follow' })
         .then(function(res) { return res.json(); })
         .then(function(data) {
           allEntries = data || [];
           renderEntries();
         })
-        .catch(function(err) {
-          console.log('Load error, trying alternative...', err);
-          // Fallback: もしCORSエラーならメッセージ表示
+        .catch(function() {
           document.getElementById('entries').innerHTML =
             '<div class="empty-state">データ読み込み中...<br>少し待ってからページを更新してください</div>';
         });
     }
 
-    // === フィルター ===
-    function setFilter(filter, btn) {
-      currentFilter = filter;
-      document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
-      btn.classList.add('active');
-      renderEntries();
-    }
-
     // === 表示 ===
     function renderEntries() {
       var container = document.getElementById('entries');
-      var filtered = allEntries;
 
-      if (currentFilter !== 'すべて') {
-        filtered = allEntries.filter(function(e) { return e.category === currentFilter; });
-      }
-
-      if (filtered.length === 0) {
+      if (allEntries.length === 0) {
         container.innerHTML = '<div class="empty-state">まだ投稿がありません<br>音声入力で最初の投稿をしてみましょう</div>';
         return;
       }
 
       var html = '';
-      filtered.forEach(function(entry, i) {
-        var catClass = 'cat-other';
-        var badgeClass = 'badge-other';
-        if (entry.category === '患者情報') { catClass = 'cat-patient'; badgeClass = 'badge-patient'; }
-        else if (entry.category === '予定') { catClass = 'cat-schedule'; badgeClass = 'badge-schedule'; }
-        else if (entry.category === '連絡事項') { catClass = 'cat-notice'; badgeClass = 'badge-notice'; }
-        else if (entry.category === 'タスク') { catClass = 'cat-task'; badgeClass = 'badge-task'; }
-
-        html += '<div class="entry ' + catClass + '">' +
+      allEntries.forEach(function(entry, i) {
+        html += '<div class="entry">' +
           '<div class="entry-header">' +
-            '<span class="entry-category ' + badgeClass + '">' + escapeHtml(entry.category) + '</span>' +
-            '<span>' +
-              '<span class="entry-date">' + escapeHtml(entry.date) + '</span> ' +
-              '<button class="entry-delete" onclick="deleteEntry(' + i + ')" title="削除">\u2715</button>' +
-            '</span>' +
+            '<span class="entry-date">' + escapeHtml(entry.date) + '</span>' +
+            '<button class="entry-delete" onclick="deleteEntry(' + i + ')" title="削除">\u2715</button>' +
           '</div>' +
           '<div class="entry-text">' + escapeHtml(entry.text) + '</div>' +
         '</div>';
@@ -493,7 +355,6 @@
     // === 起動 ===
     initSpeech();
     loadEntries();
-    // 30秒ごとに自動更新
     setInterval(loadEntries, 30000);
   </script>
 </body>
