@@ -291,7 +291,14 @@
 
     // === データ取得 ===
     function loadEntries() {
-      fetch(API_URL + '?action=getEntries', { method: 'GET', redirect: 'follow' })
+      var url = API_URL + '?action=getEntries&t=' + Date.now();
+      fetch(url)
+        .then(function(res) {
+          if (res.redirected) {
+            return fetch(res.url);
+          }
+          return res;
+        })
         .then(function(res) { return res.json(); })
         .then(function(data) {
           allEntries = data || [];
@@ -327,7 +334,8 @@
     }
 
     function deleteEntry(index) {
-      fetch(API_URL + '?action=deleteEntry&index=' + index, { method: 'GET', redirect: 'follow' })
+      fetch(API_URL + '?action=deleteEntry&index=' + index)
+        .then(function(res) { if (res.redirected) return fetch(res.url); return res; })
         .then(function(res) { return res.json(); })
         .then(function(data) {
           allEntries = data || [];
