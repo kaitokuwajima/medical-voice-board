@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>医療チーム共有ボード</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', sans-serif;
+      background: #f0f2f5;
+      color: #1a1a1a;
+      min-height: 100vh;
+      -webkit-text-size-adjust: 100%;
+    }
+    .header {
+      background: linear-gradient(135deg, #1e40af, #2563eb);
+      color: white;
+      padding: 16px 20px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .header h1 { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
+    .header p { font-size: 12px; opacity: 0.8; margin-top: 2px; }
+    .input-area {
+      background: white;
+      margin: 12px;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .category-buttons {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .cat-btn {
+      padding: 7px 12px;
+      border: 2px solid #e5e7eb;
+      border-radius: 20px;
+      background: white;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .cat-btn.active {
+      border-color: #2563eb;
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-weight: 700;
+    }
+
+    .voice-section { text-align: center; margin: 16px 0; }
+    .mic-btn {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: none;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: white;
+      font-size: 36px;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 16px rgba(37,99,235,0.35);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mic-btn:active { transform: scale(0.95); }
+    .mic-btn.recording {
+      background: linear-gradient(135deg, #dc2626, #b91c1c);
+      animation: pulse 1s infinite;
+      box-shadow: 0 4px 24px rgba(220,38,38,0.45);
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.06); }
+    }
+    .mic-label {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #6b7280;
+      font-weight: 500;
+    }
+    .mic-label.recording { color: #dc2626; font-weight: 700; }
+
+    .text-input {
+      width: 100%;
+      min-height: 70px;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 16px;
+      resize: vertical;
+      font-family: inherit;
+      margin-bottom: 10px;
+      -webkit-appearance: none;
+    }
+    .text-input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+
+    .send-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .send-btn:active { transform: scale(0.98); }
+    .send-btn:disabled { background: #9ca3af; cursor: not-allowed; transform: none; }
+
+    .filter-bar {
+      display: flex;
+      gap: 6px;
+      padding: 10px 12px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .filter-btn {
+      padding: 6px 12px;
+      border: 1.5px solid #d1d5db;
+      border-radius: 16px;
+      background: white;
+      font-size: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .filter-btn.active {
+      background: #1e40af;
+      color: white;
+      border-color: #1e40af;
+    }
+
+    .entries { padding: 0 12px 100px; }
+    .entry {
+      background: white;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+      border-left: 4px solid #e5e7eb;
+    }
+    .entry.cat-patient { border-left-color: #f59e0b; }
+    .entry.cat-schedule { border-left-color: #3b82f6; }
+    .entry.cat-notice { border-left-color: #ec4899; }
+    .entry.cat-task { border-left-color: #10b981; }
+    .entry.cat-other { border-left-color: #6b7280; }
+
+    .entry-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .entry-category {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 10px;
+      letter-spacing: 0.3px;
+    }
+    .badge-patient { background: #fef3c7; color: #92400e; }
+    .badge-schedule { background: #dbeafe; color: #1e40af; }
+    .badge-notice { background: #fce7f3; color: #9d174d; }
+    .badge-task { background: #d1fae5; color: #065f46; }
+    .badge-other { background: #f3f4f6; color: #374151; }
+    .entry-date { font-size: 11px; color: #9ca3af; }
+    .entry-text { font-size: 15px; line-height: 1.7; word-break: break-word; }
+    .entry-delete {
+      background: none; border: none; color: #d1d5db;
+      cursor: pointer; font-size: 18px; padding: 4px 8px;
+    }
+    .entry-delete:active { color: #ef4444; }
+    .empty-state { text-align: center; padding: 50px 20px; color: #9ca3af; font-size: 15px; }
+    .status-bar {
+      padding: 10px 16px;
+      font-size: 13px;
+      text-align: center;
+      font-weight: 600;
+      transition: all 0.3s;
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+    }
+    .status-bar.show { max-height: 50px; opacity: 1; padding: 10px 16px; }
+    .status-bar.success { background: #d1fae5; color: #065f46; }
+    .status-bar.error { background: #fee2e2; color: #991b1b; }
+    .status-bar.warning { background: #fef3c7; color: #854d0e; }
+    .loading { text-align: center; padding: 30px; color: #9ca3af; }
+    .refresh-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: white;
+      border: 1.5px solid #d1d5db;
+      font-size: 20px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      z-index: 50;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>&#x1F3E5; 医療チーム共有ボード</h1>
+    <p>音声入力で簡単共有</p>
+  </div>
+
+  <div id="status" class="status-bar"></div>
+
+  <div class="input-area">
+    <div class="category-buttons">
+      <button class="cat-btn active" data-cat="患者情報">&#x1FA7A; 患者情報</button>
+      <button class="cat-btn" data-cat="予定">&#x1F4C5; 予定</button>
+      <button class="cat-btn" data-cat="連絡事項">&#x1F4E2; 連絡事項</button>
+      <button class="cat-btn" data-cat="タスク">&#x2705; タスク</button>
+      <button class="cat-btn" data-cat="その他">&#x1F4DD; その他</button>
+    </div>
+
+    <div class="voice-section">
+      <button id="micBtn" class="mic-btn" onclick="toggleVoice()">&#x1F3A4;</button>
+      <div class="mic-label" id="micLabel">タップして音声入力</div>
+    </div>
+
+    <textarea id="textInput" class="text-input" placeholder="音声入力 または ここに直接入力..."></textarea>
+    <button id="sendBtn" class="send-btn" onclick="sendEntry()">&#x1F4E8; 送信する</button>
+  </div>
+
+  <div class="filter-bar">
+    <button class="filter-btn active" onclick="setFilter('すべて', this)">すべて</button>
+    <button class="filter-btn" onclick="setFilter('患者情報', this)">&#x1FA7A; 患者</button>
+    <button class="filter-btn" onclick="setFilter('予定', this)">&#x1F4C5; 予定</button>
+    <button class="filter-btn" onclick="setFilter('連絡事項', this)">&#x1F4E2; 連絡</button>
+    <button class="filter-btn" onclick="setFilter('タスク', this)">&#x2705; タスク</button>
+    <button class="filter-btn" onclick="setFilter('その他', this)">&#x1F4DD; 他</button>
+  </div>
+
+  <div id="entries" class="entries">
+    <div class="loading">読み込み中...</div>
+  </div>
+
+  <button class="refresh-btn" onclick="loadEntries()" title="更新">&#x1F504;</button>
+
+  <script>
+    // ===== Google Apps Script API URL =====
+    var API_URL = 'https://script.google.com/macros/s/AKfycbzPFtkcU8mBRgeQ5LnFMyLOqlMEZflasleZOf_LKCidEluQH7Oq4P_nOZIotgll1Et7-Q/exec';
+
+    var selectedCategory = '患者情報';
+    var currentFilter = 'すべて';
+    var allEntries = [];
+    var recognition = null;
+    var isRecording = false;
+
+    // === カテゴリ選択 ===
+    document.querySelectorAll('.cat-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.cat-btn').forEach(function(b) { b.classList.remove('active'); });
+        this.classList.add('active');
+        selectedCategory = this.dataset.cat;
+      });
+    });
+
+    // === 音声認識 ===
+    function initSpeech() {
+      var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) {
+        showStatus('このブラウザは音声入力に非対応です。Chromeをお使いください。', 'warning');
+        document.getElementById('micBtn').style.opacity = '0.3';
+        document.getElementById('micLabel').textContent = '音声入力非対応';
+        return;
+      }
+
+      recognition = new SR();
+      recognition.lang = 'ja-JP';
+      recognition.continuous = true;
+      recognition.interimResults = true;
+
+      var finalText = '';
+
+      recognition.onstart = function() {
+        finalText = document.getElementById('textInput').value;
+      };
+
+      recognition.onresult = function(event) {
+        var interim = '';
+        for (var i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            finalText += event.results[i][0].transcript;
+          } else {
+            interim += event.results[i][0].transcript;
+          }
+        }
+        document.getElementById('textInput').value = finalText + interim;
+      };
+
+      recognition.onend = function() {
+        if (isRecording) {
+          try { recognition.start(); } catch(e) {}
+        }
+      };
+
+      recognition.onerror = function(event) {
+        console.log('Speech error:', event.error);
+        if (event.error === 'not-allowed') {
+          showStatus('マイクを許可してください（アドレスバー左のアイコンから設定）', 'error');
+        } else if (event.error === 'no-speech') {
+          // 無音は無視して再開
+          return;
+        } else {
+          showStatus('音声認識エラー: ' + event.error, 'error');
+        }
+        if (event.error !== 'no-speech') {
+          stopVoice();
+        }
+      };
+    }
+
+    function toggleVoice() {
+      if (isRecording) { stopVoice(); } else { startVoice(); }
+    }
+
+    function startVoice() {
+      if (!recognition) {
+        showStatus('音声入力を初期化できませんでした', 'error');
+        return;
+      }
+      isRecording = true;
+      var btn = document.getElementById('micBtn');
+      var label = document.getElementById('micLabel');
+      btn.classList.add('recording');
+      label.textContent = '録音中... タップで停止';
+      label.classList.add('recording');
+      try { recognition.start(); } catch(e) {}
+    }
+
+    function stopVoice() {
+      isRecording = false;
+      var btn = document.getElementById('micBtn');
+      var label = document.getElementById('micLabel');
+      btn.classList.remove('recording');
+      label.textContent = 'タップして音声入力';
+      label.classList.remove('recording');
+      try { recognition.stop(); } catch(e) {}
+    }
+
+    // === データ送信 ===
+    function sendEntry() {
+      var text = document.getElementById('textInput').value.trim();
+      if (!text) {
+        showStatus('内容を入力してください', 'warning');
+        return;
+      }
+
+      stopVoice();
+      var btn = document.getElementById('sendBtn');
+      btn.disabled = true;
+      btn.textContent = '送信中...';
+
+      fetch(API_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category: selectedCategory, text: text })
+      })
+      .then(function() {
+        document.getElementById('textInput').value = '';
+        btn.disabled = false;
+        btn.textContent = '\u{1F4E8} 送信する';
+        showStatus('送信しました！', 'success');
+        // no-corsではレスポンス読めないので再取得
+        setTimeout(loadEntries, 1000);
+      })
+      .catch(function(err) {
+        btn.disabled = false;
+        btn.textContent = '\u{1F4E8} 送信する';
+        showStatus('送信エラー: ' + err.message, 'error');
+      });
+    }
+
+    // === データ取得 ===
+    function loadEntries() {
+      // GAS APIはCORS非対応なのでJSONPで取得
+      var script = document.createElement('script');
+      var callbackName = 'gasCallback_' + Date.now();
+
+      window[callbackName] = function(data) {
+        allEntries = data || [];
+        renderEntries();
+        delete window[callbackName];
+        if (script.parentNode) script.parentNode.removeChild(script);
+      };
+
+      // GAS doesn't support JSONP natively, so use redirect trick
+      // Instead, use an iframe approach or just fetch with no-cors
+      // Actually, let's use the simpler approach: fetch via redirect
+      fetch(API_URL + '?action=getEntries', { method: 'GET', redirect: 'follow' })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          allEntries = data || [];
+          renderEntries();
+        })
+        .catch(function(err) {
+          console.log('Load error, trying alternative...', err);
+          // Fallback: もしCORSエラーならメッセージ表示
+          document.getElementById('entries').innerHTML =
+            '<div class="empty-state">データ読み込み中...<br>少し待ってからページを更新してください</div>';
+        });
+    }
+
+    // === フィルター ===
+    function setFilter(filter, btn) {
+      currentFilter = filter;
+      document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      renderEntries();
+    }
+
+    // === 表示 ===
+    function renderEntries() {
+      var container = document.getElementById('entries');
+      var filtered = allEntries;
+
+      if (currentFilter !== 'すべて') {
+        filtered = allEntries.filter(function(e) { return e.category === currentFilter; });
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty-state">まだ投稿がありません<br>音声入力で最初の投稿をしてみましょう</div>';
+        return;
+      }
+
+      var html = '';
+      filtered.forEach(function(entry, i) {
+        var catClass = 'cat-other';
+        var badgeClass = 'badge-other';
+        if (entry.category === '患者情報') { catClass = 'cat-patient'; badgeClass = 'badge-patient'; }
+        else if (entry.category === '予定') { catClass = 'cat-schedule'; badgeClass = 'badge-schedule'; }
+        else if (entry.category === '連絡事項') { catClass = 'cat-notice'; badgeClass = 'badge-notice'; }
+        else if (entry.category === 'タスク') { catClass = 'cat-task'; badgeClass = 'badge-task'; }
+
+        html += '<div class="entry ' + catClass + '">' +
+          '<div class="entry-header">' +
+            '<span class="entry-category ' + badgeClass + '">' + escapeHtml(entry.category) + '</span>' +
+            '<span>' +
+              '<span class="entry-date">' + escapeHtml(entry.date) + '</span> ' +
+              '<button class="entry-delete" onclick="deleteEntry(' + i + ')" title="削除">\u2715</button>' +
+            '</span>' +
+          '</div>' +
+          '<div class="entry-text">' + escapeHtml(entry.text) + '</div>' +
+        '</div>';
+      });
+
+      container.innerHTML = html;
+    }
+
+    function deleteEntry(index) {
+      if (!confirm('この投稿を削除しますか？')) return;
+      fetch(API_URL + '?action=deleteEntry&index=' + index, { method: 'GET', redirect: 'follow' })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          allEntries = data || [];
+          renderEntries();
+          showStatus('削除しました', 'success');
+        })
+        .catch(function() { showStatus('削除エラー', 'error'); });
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      var div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function showStatus(msg, type) {
+      var el = document.getElementById('status');
+      el.textContent = msg;
+      el.className = 'status-bar show ' + (type || '');
+      setTimeout(function() { el.className = 'status-bar'; }, 3000);
+    }
+
+    // === 起動 ===
+    initSpeech();
+    loadEntries();
+    // 30秒ごとに自動更新
+    setInterval(loadEntries, 30000);
+  </script>
+</body>
+</html>
