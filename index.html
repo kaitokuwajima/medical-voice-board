@@ -327,7 +327,6 @@
     }
 
     function deleteEntry(index) {
-      if (!confirm('この投稿を削除しますか？')) return;
       fetch(API_URL + '?action=deleteEntry&index=' + index, { method: 'GET', redirect: 'follow' })
         .then(function(res) { return res.json(); })
         .then(function(data) {
