@@ -149,6 +149,85 @@
   </style>
 </head>
 <body>
+  <div id="vbAuthGate" style="display:none;position:fixed;inset:0;background:linear-gradient(135deg,#1a73e8 0%,#1565c0
+  100%);z-index:99999;align-items:center;justify-content:center;padding:20px">
+    <form id="vbAuthForm" style="background:#fff;border-radius:16px;padding:32px 24px;width:100%;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,.3);text-align:center">
+      <div style="font-size:48px;margin-bottom:8px">🔒</div>
+      <div style="font-size:18px;font-weight:800;margin-bottom:6px;color:#202124">共有ボード</div>
+      <div style="font-size:13px;color:#5f6368;margin-bottom:20px">パスワードを入力してください</div>
+      <input id="vbAuthInput" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="20" autocomplete="off"
+        style="width:100%;padding:14px 16px;font-size:24px;text-align:center;letter-spacing:8px;border:2px solid #e0e0e0;border-radius:10px;outline:none" />
+      <div id="vbAuthError" style="display:none;color:#db4437;font-size:13px;font-weight:600;margin-top:10px"></div>
+      <button type="submit" id="vbAuthBtn"
+        style="margin-top:16px;width:100%;padding:13px;background:#1a73e8;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">ログイ
+  ン</button>
+    </form>
+  </div>
+  <script>
+  (function(){
+    var AUTH_API = 'https://script.google.com/macros/s/AKfycbymuT9KGx_Eraoo-jLBYoSyo7l3KNfdCZgs0A8S-KM-pTgFiZPb-r4zv50Z4J3YRcn-/exec';
+    var gate = document.getElementById('vbAuthGate');
+    var form = document.getElementById('vbAuthForm');
+    var input = document.getElementById('vbAuthInput');
+    var err = document.getElementById('vbAuthError');
+    var btn = document.getElementById('vbAuthBtn');
+    function showGate(){
+      gate.style.display='flex';
+      document.documentElement.style.overflow='hidden';
+      setTimeout(function(){input.focus();},50);
+    }
+    function hideGate(){
+      gate.style.display='none';
+      document.documentElement.style.overflow='';
+    }
+    // JSONP helper (CORS回避)
+    function jsonp(params, cb){
+      var name = '__vbcb_' + Math.random().toString(36).slice(2);
+      var script = document.createElement('script');
+      var timer = setTimeout(function(){cleanup();cb({success:false,error:'通信タイムアウト'})}, 15000);
+      function cleanup(){
+        try{delete window[name]}catch(_){window[name]=undefined}
+        if(script.parentNode)script.parentNode.removeChild(script);
+        clearTimeout(timer);
+      }
+      window[name] = function(data){cleanup();cb(data)};
+      script.onerror = function(){cleanup();cb({success:false,error:'ネットワークエラー'})};
+      var qs = Object.keys(params).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(params[k])}).join('&');
+      script.src = AUTH_API + '?' + qs + '&callback=' + name;
+      document.body.appendChild(script);
+    }
+    // 既存トークン照会
+    var existingToken = '';
+    try{existingToken = localStorage.getItem('appAuthToken') || '';}catch(_){}
+    if(existingToken){
+      jsonp({action:'verifyToken', token:existingToken}, function(r){
+        if(r && r.valid){/* 通過 */}
+        else{
+          try{localStorage.removeItem('appAuthToken');}catch(_){}
+          showGate();
+        }
+      });
+    }else{
+      showGate();
+    }
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      err.style.display = 'none';
+      btn.disabled = true; btn.textContent = '確認中...';
+      jsonp({action:'verifyPassword', password:input.value}, function(r){
+        btn.disabled = false; btn.textContent = 'ログイン';
+        if(r && r.success && r.token){
+          try{localStorage.setItem('appAuthToken', r.token);}catch(_){}
+          hideGate();
+        }else{
+          err.textContent = (r && r.error) ? r.error : 'パスワードが違います';
+          err.style.display = 'block';
+          input.value = ''; input.focus();
+        }
+      });
+    });
+  })();
+  </script>
   <div class="header">
     <h1>&#x1F3E5; 医療チーム共有ボード</h1>
     <p>音声入力で簡単共有</p>
